@@ -45,6 +45,7 @@
   #textDisplay span.cur{ background:var(--cur-yellow); color:#111827; padding:2px 3px; border-radius:4px }
 
   .grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
+  .grid-3{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px}
   .stat{border:1px solid #e5e7eb; border-radius:14px; padding:14px 16px; background:#fff}
   .stat small{display:block; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:.12em}
   .value{font-size:20px; font-weight:800; margin-top:6px}
@@ -79,7 +80,7 @@
   .modal .actions .btn-primary:hover{background:var(--accent-700)}
   .modal-backdrop.show{display:flex}
 
-  @media (max-width:820px){.grid{grid-template-columns:1fr}}
+  @media (max-width:920px){.grid-3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -138,21 +139,44 @@
     <!-- Results -->
     <section class="section">
       <h3>Test Results</h3>
+
       <div id="bothResults" class="hidden">
-        <div class="grid">
-          <div class="stat"><small>Total Keystrokes</small><div id="totalKeys" class="value">0</div></div>
-          <div class="stat"><small>Total Words</small><div id="totalWords" class="value">0</div></div>
-          <div class="stat"><small>Total Wrong Words</small><div id="totalWrong" class="value">0</div></div>
-          <div class="stat"><small>Penalty Words</small><div id="penaltyWords" class="value" style="color:var(--warning)">0</div></div>
-          <div class="stat"><small>Net Typing Speed</small><div id="netSpeed" class="value">0.00<span class="u"> WPM</span></div></div>
-        </div>
-        <div class="final">
-          <div id="badgeEN" class="pill-fail">EN: FAIL</div>
-          <div id="badgeHI" class="pill-fail">HI: FAIL</div>
-          <div id="badgeOverall" class="pill-fail">OVERALL: FAIL</div>
-          <span class="note">Both languages must meet minimum net WPM.</span>
+        <div class="grid-3">
+          <!-- EN Panel -->
+          <div class="stat">
+            <small>ENGLISH</small>
+            <div class="value" id="badgeEN" style="margin-bottom:8px;">EN: FAIL</div>
+            <div class="grid" style="gap:8px">
+              <div class="stat"><small>Total Keystrokes</small><div id="enKeys" class="value">0</div></div>
+              <div class="stat"><small>Total Words</small><div id="enWords" class="value">0</div></div>
+              <div class="stat"><small>Total Wrong Words</small><div id="enWrong" class="value">0</div></div>
+              <div class="stat"><small>Penalty Words</small><div id="enPenalty" class="value" style="color:var(--warning)">0</div></div>
+              <div class="stat"><small>Net Typing Speed</small><div id="enNet" class="value">0.00<span class="u"> WPM</span></div></div>
+            </div>
+          </div>
+
+          <!-- HI Panel -->
+          <div class="stat">
+            <small>HINDI</small>
+            <div class="value" id="badgeHI" style="margin-bottom:8px;">HI: FAIL</div>
+            <div class="grid" style="gap:8px">
+              <div class="stat"><small>Total Keystrokes</small><div id="hiKeys" class="value">0</div></div>
+              <div class="stat"><small>Total Words</small><div id="hiWords" class="value">0</div></div>
+              <div class="stat"><small>Total Wrong Words</small><div id="hiWrong" class="value">0</div></div>
+              <div class="stat"><small>Penalty Words</small><div id="hiPenalty" class="value" style="color:var(--warning)">0</div></div>
+              <div class="stat"><small>Net Typing Speed</small><div id="hiNet" class="value">0.00<span class="u"> WPM</span></div></div>
+            </div>
+          </div>
+
+          <!-- Overall -->
+          <div class="stat">
+            <small>OVERALL</small>
+            <div id="badgeOverall" class="value pill-fail" style="display:inline-block; padding:8px 14px; border-radius:10px; margin-top:8px;">OVERALL: FAIL</div>
+            <p class="note" style="margin-top:10px">Both languages must meet minimum net WPM.</p>
+          </div>
         </div>
       </div>
+
       <div id="preResultsNote" class="note">Results appear after each stage and a combined summary at the end.</div>
     </section>
   </div>
@@ -194,22 +218,30 @@ document.addEventListener('DOMContentLoaded', function(){
     instrBody: document.getElementById('instrBody'),
     instrOk: document.getElementById('instrOk'),
     instrCancel: document.getElementById('instrCancel'),
-    totalKeys: document.getElementById('totalKeys'),
-    totalWords: document.getElementById('totalWords'),
-    totalWrong: document.getElementById('totalWrong'),
-    penaltyWords: document.getElementById('penaltyWords'),
-    netSpeed: document.getElementById('netSpeed'),
+
+    // EN result fields
+    enKeys: document.getElementById('enKeys'),
+    enWords: document.getElementById('enWords'),
+    enWrong: document.getElementById('enWrong'),
+    enPenalty: document.getElementById('enPenalty'),
+    enNet: document.getElementById('enNet'),
+
+    // HI result fields
+    hiKeys: document.getElementById('hiKeys'),
+    hiWords: document.getElementById('hiWords'),
+    hiWrong: document.getElementById('hiWrong'),
+    hiPenalty: document.getElementById('hiPenalty'),
+    hiNet: document.getElementById('hiNet'),
   };
 
   /* ===== Instruction HTML ===== */
   const INSTRUCTIONS_HTML = `
     <ol>
-      <li>The candidates will be provided with the master text passage of about 1500 key depressions in English.</li>
-      <li>The typing can be either word based typing or key strokes based typing.</li>
-      <li>The duration of the English typing test is 05:00 minutes.</li>
-      <li>You may revise and correct mistakes within the time.</li>
+      <li>English stage 5 minutes, then Hindi stage 5 minutes.</li>
       <li>One “Word” = alphanumeric keys followed by a space.</li>
-      <li>After typing the given number of words in the master text, the spacebar won’t add more words (non-space chars still allowed).</li>
+      <li>Backspace allowed only within the current word and the immediate previous word.</li>
+      <li>WPM is based on words typed: Net WPM = (Total Words − Penalty Words) / minutes.</li>
+      <li>Penalty counts only typed mistakes (mismatches & over-typed), with 5-word grace.</li>
     </ol>`;
 
   /* ===== State ===== */
@@ -286,6 +318,12 @@ document.addEventListener('DOMContentLoaded', function(){
     prevLockIdx = -1;
     lastVal = '';
     snapshotTextarea();
+
+    // clear result panels
+    fillPanel('EN', {keystrokes:0, words:0, wrong:0, penalty:0, netWPM:0, passed:false}, false);
+    fillPanel('HI', {keystrokes:0, words:0, wrong:0, penalty:0, netWPM:0, passed:false}, false);
+    els.badgeOverall.className = 'value pill-fail';
+    els.badgeOverall.textContent = 'OVERALL: FAIL';
   }
 
   /* ===== BACKSPACE LOCK: current + previous word only =====
@@ -378,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   function finishStage(){
     els.inputArea.disabled=true; els.submitBtn.classList.add('hidden');
-    const stageResult = computeResults(); results[stage]=stageResult;
+    const r = computeResults(); results[stage]=r;
     setButtonsRunning(false);
 
     if (stage==='EN'){
@@ -393,7 +431,33 @@ document.addEventListener('DOMContentLoaded', function(){
     started=false;
   }
 
-  /* ===== Scoring & Dashboard ===== */
+  /* ===== Fill a panel (EN/HI) ===== */
+  function fillPanel(which, data, show=true){
+    const passClass = data.passed ? 'pill-pass' : 'pill-fail';
+    if (which==='EN'){
+      els.enKeys.textContent = data.keystrokes;
+      els.enWords.textContent = data.words;
+      els.enWrong.textContent = data.wrong;
+      els.enPenalty.textContent = data.penalty;
+      els.enNet.innerHTML = data.netWPM.toFixed(2) + '<span class="u"> WPM</span>';
+      els.badgeEN.className = 'value ' + passClass;
+      els.badgeEN.textContent = 'EN: ' + (data.passed ? 'PASS' : 'FAIL');
+    } else {
+      els.hiKeys.textContent = data.keystrokes;
+      els.hiWords.textContent = data.words;
+      els.hiWrong.textContent = data.wrong;
+      els.hiPenalty.textContent = data.penalty;
+      els.hiNet.innerHTML = data.netWPM.toFixed(2) + '<span class="u"> WPM</span>';
+      els.badgeHI.className = 'value ' + passClass;
+      els.badgeHI.textContent = 'HI: ' + (data.passed ? 'PASS' : 'FAIL');
+    }
+    if (show){
+      els.bothResults.classList.remove('hidden');
+      els.preResultsNote.classList.add('hidden');
+    }
+  }
+
+  /* ===== Scoring & Highlights ===== */
   function computeResults(){
     const elapsedSec = Math.max(1, Math.round((Date.now()-startedAt)/1000));
     const minutes = elapsedSec/60;
@@ -407,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function(){
     for (let n=0;n<spans.length;n++){ spans[n].classList.remove('ok','err','cur'); }
     const overlap = Math.min(typedWords.length, refWords.length);
 
-    let wrong = 0; // mismatches within overlap + over-typed
+    let wrong = 0; // typed mismatches + over-typed
     for (let i=0;i<overlap;i++){
       const span = spans[i];
       if (typedWords[i] === refWords[i]) span.classList.add('ok');
@@ -416,51 +480,37 @@ document.addEventListener('DOMContentLoaded', function(){
     const overTyped = Math.max(0, typedWords.length - refWords.length);
     wrong += overTyped;
 
+    // cursor
     const curIndex = Math.max(0, typedWords.length - 1);
     const curSpan = spans[curIndex];
     if (curSpan){ curSpan.classList.add('cur'); curSpan.scrollIntoView({block:'nearest', inline:'nearest'}); }
 
-    // Totals
+    // totals
     const keystrokes = typedRaw.length;
     const totalWords = typedWords.length;
 
-    // Penalty: only typed wrong words; 5-word grace
+    // penalty with 5-word grace; only typed errors
     const grace = 5;
     const penalty = Math.max(0, wrong - grace);
 
-    // Net Typing Speed (WORDS model): (Total Words − Penalty) / minutes
+    // Net WPM (word-count model as requested)
     const netWPM = Math.max(0, (totalWords - penalty)) / minutes;
 
-    // Update dashboard
-    els.totalKeys.textContent = keystrokes;
-    els.totalWords.textContent = totalWords;
-    els.totalWrong.textContent = wrong;
-    els.penaltyWords.textContent = penalty;
-    els.netSpeed.innerHTML = netWPM.toFixed(2) + '<span class="u"> WPM</span>';
-
-    // Stage pass/fail using netWPM requirement
+    // pass/fail
     const minSpeed = stage === 'HI' ? 25 : 30;
     const passed = netWPM >= minSpeed;
-    if (stage==='EN'){
-      els.badgeEN.className = passed ? 'pill-pass' : 'pill-fail';
-      els.badgeEN.textContent = 'EN: ' + (passed ? 'PASS' : 'FAIL');
-    } else {
-      els.badgeHI.className = passed ? 'pill-pass' : 'pill-fail';
-      els.badgeHI.textContent = 'HI: ' + (passed ? 'PASS' : 'FAIL');
-    }
 
-    // Reveal results container
-    els.bothResults.classList.remove('hidden'); els.preResultsNote.classList.add('hidden');
+    // write into panel for this stage
+    fillPanel(stage, {keystrokes, words: totalWords, wrong, penalty, netWPM, passed});
 
-    return { netWPM, wrong, penalty, totals: { keystrokes, words: totalWords }, passed };
+    return { keystrokes, words: totalWords, wrong, penalty, netWPM, passed };
   }
 
   function showCombinedResults(){
     const enPass = results.EN && results.EN.passed === true;
     const hiPass = results.HI && results.HI.passed === true;
-    const overallPass = enPass && hiPass;
-    els.badgeOverall.className = overallPass ? 'pill-pass' : 'pill-fail';
-    els.badgeOverall.textContent = 'OVERALL: ' + (overallPass ? 'PASS' : 'FAIL');
+    els.badgeOverall.className = 'value ' + (enPass && hiPass ? 'pill-pass' : 'pill-fail');
+    els.badgeOverall.textContent = 'OVERALL: ' + ((enPass && hiPass) ? 'PASS' : 'FAIL');
   }
 
   function highlightProgress(){
@@ -554,6 +604,7 @@ document.addEventListener('DOMContentLoaded', function(){
       return;
     }
 
+    // prevent extra words beyond passage
     if (e.key === ' '){
       const val = els.inputArea.value;
       const refCount = passage.split(/\s+/).length;
@@ -681,4 +732,3 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 </body>
 </html>
-
