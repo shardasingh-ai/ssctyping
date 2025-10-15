@@ -54,6 +54,7 @@
   .pill-fail{background:#fee2e2; color:#991b1b; border:1px solid #fecaca; font-weight:900; letter-spacing:.08em; padding:10px 18px; border-radius:12px}
   .pill-pass{background:#dcfce7; color:#065f46; border:1px solid #bbf7d0; font-weight:900; letter-spacing:.08em; padding:10px 18px; border-radius:12px}
   .note{color:#6b7280}
+  .mini-note{color:#991b1b; font-weight:700; font-size:12px; margin-top:6px}
   .hidden{display:none}
 
   /* Toast */
@@ -155,6 +156,7 @@
               <div class="stat"><small>Penalty Words</small><div id="enPenalty" class="value" style="color:var(--warning)">0</div></div>
               <div class="stat"><small>Net Typing Speed</small><div id="enNet" class="value">0.00<span class="u"> WPM</span></div></div>
             </div>
+            <div id="enNote" class="mini-note hidden"></div>
           </div>
 
           <!-- HI Panel -->
@@ -168,13 +170,14 @@
               <div class="stat"><small>Penalty Words</small><div id="hiPenalty" class="value" style="color:var(--warning)">0</div></div>
               <div class="stat"><small>Net Typing Speed</small><div id="hiNet" class="value">0.00<span class="u"> WPM</span></div></div>
             </div>
+            <div id="hiNote" class="mini-note hidden"></div>
           </div>
 
           <!-- Overall -->
           <div class="stat">
             <small>OVERALL</small>
             <div id="badgeOverall" class="value pill-fail" style="display:inline-block; padding:8px 14px; border-radius:10px; margin-top:8px;">OVERALL: —</div>
-            <p class="note" style="margin-top:10px">Both languages must meet minimum net WPM.</p>
+            <p class="note" style="margin-top:10px">Both languages must meet minimum word count and net WPM.</p>
           </div>
         </div>
       </div>
@@ -226,12 +229,14 @@ document.addEventListener('DOMContentLoaded', function(){
     enWrong: document.getElementById('enWrong'),
     enPenalty: document.getElementById('enPenalty'),
     enNet: document.getElementById('enNet'),
+    enNote: document.getElementById('enNote'),
 
     hiKeys: document.getElementById('hiKeys'),
     hiWords: document.getElementById('hiWords'),
     hiWrong: document.getElementById('hiWrong'),
     hiPenalty: document.getElementById('hiPenalty'),
     hiNet: document.getElementById('hiNet'),
+    hiNote: document.getElementById('hiNote'),
   };
 
   /* ===== Instruction HTML (exact text provided) ===== */
@@ -269,9 +274,15 @@ document.addEventListener('DOMContentLoaded', function(){
   let toastTimer = null;
   function showToast(msg){
     els.toast.textContent = msg;
-    els.toastWrap.classList.add('show');
+    if (!els.toastWrap.classList.contains('show')) {
+      els.toastWrap.classList.add('show');
+      requestAnimationFrame(()=> els.toast.style.opacity = 1);
+    }
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=> els.toastWrap.classList.remove('show'), 1600);
+    toastTimer = setTimeout(()=>{
+      els.toast.style.opacity = 0;
+      setTimeout(()=> els.toastWrap.classList.remove('show'), 250);
+    }, 1600);
   }
 
   /* ===== Helpers ===== */
@@ -324,18 +335,19 @@ document.addEventListener('DOMContentLoaded', function(){
     lockIdx = -1; prevLockIdx = -1; lastVal = '';
     snapshotTextarea();
 
-    // clear badges
+    // clear badges & numbers
     els.badgeEN.className = 'value';
     els.badgeEN.textContent = 'EN: —';
     els.badgeHI.className = 'value';
     els.badgeHI.textContent = 'HI: —';
     els.badgeOverall.className = 'value pill-fail';
     els.badgeOverall.textContent = 'OVERALL: —';
-    // zero numbers
     ['enKeys','enWords','enWrong','enPenalty','hiKeys','hiWords','hiWrong','hiPenalty']
       .forEach(id => els[id].textContent = '0');
     els.enNet.innerHTML = '0.00<span class="u"> WPM</span>';
     els.hiNet.innerHTML = '0.00<span class="u"> WPM</span>';
+    els.enNote.classList.add('hidden'); els.enNote.textContent='';
+    els.hiNote.classList.add('hidden'); els.hiNote.textContent='';
   }
 
   /* ===== BACKSPACE LOCK: current + previous word only =====
@@ -448,6 +460,9 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   /* ===== Scoring & Highlights ===== */
+  const MIN_WORDS_EN = 150; // 30*5
+  const MIN_WORDS_HI = 125; // 25*5
+
   function computeResults(){
     const elapsedSec = Math.max(1, Math.round((Date.now()-startedAt)/1000));
     const minutes = elapsedSec/60;
@@ -486,9 +501,14 @@ document.addEventListener('DOMContentLoaded', function(){
     // Net WPM (word-count model)
     const netWPM = Math.max(0, (totalWords - penalty)) / minutes;
 
-    // pass/fail
+    // thresholds
     const minSpeed = stage === 'HI' ? 25 : 30;
-    const passed = netWPM >= minSpeed;
+    const minWords = stage === 'HI' ? MIN_WORDS_HI : MIN_WORDS_EN;
+
+    // pass/fail requires BOTH gates
+    const meetsWords = totalWords >= minWords;
+    const meetsSpeed = netWPM >= minSpeed;
+    const passed = meetsWords && meetsSpeed;
 
     // write fields for this stage (no reveal here for EN)
     if (stage === 'EN'){
@@ -499,6 +519,13 @@ document.addEventListener('DOMContentLoaded', function(){
       els.enNet.innerHTML = netWPM.toFixed(2) + '<span class="u"> WPM</span>';
       els.badgeEN.className = 'value ' + (passed ? 'pill-pass' : 'pill-fail');
       els.badgeEN.textContent = 'EN: ' + (passed ? 'PASS' : 'FAIL');
+      // note
+      if (!meetsWords){
+        els.enNote.textContent = `Minimum ${minWords} words required (you typed ${totalWords}).`;
+        els.enNote.classList.remove('hidden');
+      } else {
+        els.enNote.classList.add('hidden'); els.enNote.textContent='';
+      }
     } else {
       els.hiKeys.textContent = keystrokes;
       els.hiWords.textContent = totalWords;
@@ -507,9 +534,16 @@ document.addEventListener('DOMContentLoaded', function(){
       els.hiNet.innerHTML = netWPM.toFixed(2) + '<span class="u"> WPM</span>';
       els.badgeHI.className = 'value ' + (passed ? 'pill-pass' : 'pill-fail');
       els.badgeHI.textContent = 'HI: ' + (passed ? 'PASS' : 'FAIL');
+      // note
+      if (!meetsWords){
+        els.hiNote.textContent = `Minimum ${minWords} words required (you typed ${totalWords}).`;
+        els.hiNote.classList.remove('hidden');
+      } else {
+        els.hiNote.classList.add('hidden'); els.hiNote.textContent='';
+      }
     }
 
-    return { keystrokes, words: totalWords, wrong, penalty, netWPM, passed };
+    return { keystrokes, words: totalWords, wrong, penalty, netWPM, passed, meetsWords, meetsSpeed };
   }
 
   function showCombinedResults(){
@@ -655,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function(){
       els.inputArea.value = lastVal;
       const safe = Math.max(prevLockIdx + 1, 0);
       els.inputArea.setSelectionRange(safe, safe);
-      // optional toast muted for UX: showToast('Backspace limited to current & previous word');
+      // optional toast muted for UX
       return;
     }
 
@@ -727,7 +761,6 @@ document.addEventListener('DOMContentLoaded', function(){
       applySet('default');
       els.startBtn.disabled = false;
       els.startBtn.textContent = 'Start English';
-      // Optional: showToast('⚠️ Could not load passages.json — using built-in default.');
     }
   }
 
@@ -738,4 +771,3 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 </body>
 </html>
-
