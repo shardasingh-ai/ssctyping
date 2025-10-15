@@ -145,7 +145,7 @@
           <!-- EN Panel -->
           <div class="stat">
             <small>ENGLISH</small>
-            <div class="value" id="badgeEN" style="margin-bottom:8px;">EN: FAIL</div>
+            <div class="value" id="badgeEN" style="margin-bottom:8px;">EN: —</div>
             <div class="grid" style="gap:8px">
               <div class="stat"><small>Total Keystrokes</small><div id="enKeys" class="value">0</div></div>
               <div class="stat"><small>Total Words</small><div id="enWords" class="value">0</div></div>
@@ -158,7 +158,7 @@
           <!-- HI Panel -->
           <div class="stat">
             <small>HINDI</small>
-            <div class="value" id="badgeHI" style="margin-bottom:8px;">HI: FAIL</div>
+            <div class="value" id="badgeHI" style="margin-bottom:8px;">HI: —</div>
             <div class="grid" style="gap:8px">
               <div class="stat"><small>Total Keystrokes</small><div id="hiKeys" class="value">0</div></div>
               <div class="stat"><small>Total Words</small><div id="hiWords" class="value">0</div></div>
@@ -171,13 +171,13 @@
           <!-- Overall -->
           <div class="stat">
             <small>OVERALL</small>
-            <div id="badgeOverall" class="value pill-fail" style="display:inline-block; padding:8px 14px; border-radius:10px; margin-top:8px;">OVERALL: FAIL</div>
+            <div id="badgeOverall" class="value pill-fail" style="display:inline-block; padding:8px 14px; border-radius:10px; margin-top:8px;">OVERALL: —</div>
             <p class="note" style="margin-top:10px">Both languages must meet minimum net WPM.</p>
           </div>
         </div>
       </div>
 
-      <div id="preResultsNote" class="note">Results appear after each stage and a combined summary at the end.</div>
+      <div id="preResultsNote" class="note">Results appear after <b>both</b> English and Hindi are submitted.</div>
     </section>
   </div>
 
@@ -219,14 +219,12 @@ document.addEventListener('DOMContentLoaded', function(){
     instrOk: document.getElementById('instrOk'),
     instrCancel: document.getElementById('instrCancel'),
 
-    // EN result fields
     enKeys: document.getElementById('enKeys'),
     enWords: document.getElementById('enWords'),
     enWrong: document.getElementById('enWrong'),
     enPenalty: document.getElementById('enPenalty'),
     enNet: document.getElementById('enNet'),
 
-    // HI result fields
     hiKeys: document.getElementById('hiKeys'),
     hiWords: document.getElementById('hiWords'),
     hiWrong: document.getElementById('hiWrong'),
@@ -240,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <li>English stage 5 minutes, then Hindi stage 5 minutes.</li>
       <li>One “Word” = alphanumeric keys followed by a space.</li>
       <li>Backspace allowed only within the current word and the immediate previous word.</li>
-      <li>WPM is based on words typed: Net WPM = (Total Words − Penalty Words) / minutes.</li>
+      <li>Net WPM = (Total Words − Penalty Words) / minutes.</li>
       <li>Penalty counts only typed mistakes (mismatches & over-typed), with 5-word grace.</li>
     </ol>`;
 
@@ -314,20 +312,24 @@ document.addEventListener('DOMContentLoaded', function(){
     setButtonsRunning(false);
 
     // init lock snapshots
-    lockIdx = -1;
-    prevLockIdx = -1;
-    lastVal = '';
+    lockIdx = -1; prevLockIdx = -1; lastVal = '';
     snapshotTextarea();
 
-    // clear result panels
-    fillPanel('EN', {keystrokes:0, words:0, wrong:0, penalty:0, netWPM:0, passed:false}, false);
-    fillPanel('HI', {keystrokes:0, words:0, wrong:0, penalty:0, netWPM:0, passed:false}, false);
+    // clear badges
+    els.badgeEN.className = 'value';
+    els.badgeEN.textContent = 'EN: —';
+    els.badgeHI.className = 'value';
+    els.badgeHI.textContent = 'HI: —';
     els.badgeOverall.className = 'value pill-fail';
-    els.badgeOverall.textContent = 'OVERALL: FAIL';
+    els.badgeOverall.textContent = 'OVERALL: —';
+    // zero the numbers
+    els.enKeys.textContent = els.enWords.textContent = els.enWrong.textContent = els.enPenalty.textContent = '0';
+    els.enNet.innerHTML = '0.00<span class="u"> WPM</span>';
+    els.hiKeys.textContent = els.hiWords.textContent = els.hiWrong.textContent = els.hiPenalty.textContent = '0';
+    els.hiNet.innerHTML = '0.00<span class="u"> WPM</span>';
   }
 
-  /* ===== BACKSPACE LOCK: current + previous word only =====
-     Lock boundary = index OF the second-last space (inclusive). */
+  /* ===== BACKSPACE LOCK: current + previous word only ===== */
   function computeLockIndex(val){
     const spaces = [];
     for (let i = 0; i < val.length; i++){
@@ -383,9 +385,7 @@ document.addEventListener('DOMContentLoaded', function(){
     setPassage(passage); setFonts(); highlightProgress();
 
     // init lock snapshots
-    lockIdx = -1;
-    prevLockIdx = -1;
-    lastVal = '';
+    lockIdx = -1; prevLockIdx = -1; lastVal = '';
     snapshotTextarea();
 
     renderTime();
@@ -420,44 +420,23 @@ document.addEventListener('DOMContentLoaded', function(){
     setButtonsRunning(false);
 
     if (stage==='EN'){
+      // Do NOT show results yet; wait for Hindi to complete
       let prep=8; els.textDisplay.innerHTML='Hindi starts in <b>'+prep+'</b> seconds… Select font above if needed.';
       const prepInt=setInterval(function(){
         prep--; els.textDisplay.innerHTML='Hindi starts in <b>'+prep+'</b> seconds… Select font above if needed.';
         if(prep<=0){ clearInterval(prepInt); stage='HI'; els.timerEl.textContent='5:00'; els.startBtn.textContent='Start Hindi'; startStage(); }
       },1000);
     } else {
-      showCombinedResults(); els.startBtn.textContent='Restart';
+      // Now show both panels & overall
+      showCombinedResults();
+      els.bothResults.classList.remove('hidden');
+      els.preResultsNote.classList.add('hidden');
+      els.startBtn.textContent='Restart';
     }
     started=false;
   }
 
-  /* ===== Fill a panel (EN/HI) ===== */
-  function fillPanel(which, data, show=true){
-    const passClass = data.passed ? 'pill-pass' : 'pill-fail';
-    if (which==='EN'){
-      els.enKeys.textContent = data.keystrokes;
-      els.enWords.textContent = data.words;
-      els.enWrong.textContent = data.wrong;
-      els.enPenalty.textContent = data.penalty;
-      els.enNet.innerHTML = data.netWPM.toFixed(2) + '<span class="u"> WPM</span>';
-      els.badgeEN.className = 'value ' + passClass;
-      els.badgeEN.textContent = 'EN: ' + (data.passed ? 'PASS' : 'FAIL');
-    } else {
-      els.hiKeys.textContent = data.keystrokes;
-      els.hiWords.textContent = data.words;
-      els.hiWrong.textContent = data.wrong;
-      els.hiPenalty.textContent = data.penalty;
-      els.hiNet.innerHTML = data.netWPM.toFixed(2) + '<span class="u"> WPM</span>';
-      els.badgeHI.className = 'value ' + passClass;
-      els.badgeHI.textContent = 'HI: ' + (data.passed ? 'PASS' : 'FAIL');
-    }
-    if (show){
-      els.bothResults.classList.remove('hidden');
-      els.preResultsNote.classList.add('hidden');
-    }
-  }
-
-  /* ===== Scoring & Highlights ===== */
+  /* ===== Scoring + write into panel for current stage (but reveal only after HI) ===== */
   function computeResults(){
     const elapsedSec = Math.max(1, Math.round((Date.now()-startedAt)/1000));
     const minutes = elapsedSec/60;
@@ -493,15 +472,31 @@ document.addEventListener('DOMContentLoaded', function(){
     const grace = 5;
     const penalty = Math.max(0, wrong - grace);
 
-    // Net WPM (word-count model as requested)
+    // Net WPM (word-count model)
     const netWPM = Math.max(0, (totalWords - penalty)) / minutes;
 
     // pass/fail
     const minSpeed = stage === 'HI' ? 25 : 30;
     const passed = netWPM >= minSpeed;
 
-    // write into panel for this stage
-    fillPanel(stage, {keystrokes, words: totalWords, wrong, penalty, netWPM, passed});
+    // write fields for this stage (no reveal here)
+    if (stage === 'EN'){
+      els.enKeys.textContent = keystrokes;
+      els.enWords.textContent = totalWords;
+      els.enWrong.textContent = wrong;
+      els.enPenalty.textContent = penalty;
+      els.enNet.innerHTML = netWPM.toFixed(2) + '<span class="u"> WPM</span>';
+      els.badgeEN.className = 'value ' + (passed ? 'pill-pass' : 'pill-fail');
+      els.badgeEN.textContent = 'EN: ' + (passed ? 'PASS' : 'FAIL');
+    } else {
+      els.hiKeys.textContent = keystrokes;
+      els.hiWords.textContent = totalWords;
+      els.hiWrong.textContent = wrong;
+      els.hiPenalty.textContent = penalty;
+      els.hiNet.innerHTML = netWPM.toFixed(2) + '<span class="u"> WPM</span>';
+      els.badgeHI.className = 'value ' + (passed ? 'pill-pass' : 'pill-fail');
+      els.badgeHI.textContent = 'HI: ' + (passed ? 'PASS' : 'FAIL');
+    }
 
     return { keystrokes, words: totalWords, wrong, penalty, netWPM, passed };
   }
@@ -713,8 +708,8 @@ document.addEventListener('DOMContentLoaded', function(){
       console.error('[passages.json] load error:', e);
       passageSets = [{
         id:'default', label:'Default',
-        english:"The Uttar Pradesh Subordinate Services Selection Commission conducts the typing test to check a candidate's ability to type accurately at a practical pace. During the examination you will copy the given passage within a strict five minute window. The objective is not only to reach a higher speed, but also to maintain precision while switching between words, punctuation and casing. Students are advised to focus on rhythm, keep their posture neutral and avoid looking at the keyboard. With consistent practice the gross speed and net speed both improve substantially.",
-        hindi:"उत्तर प्रदेश अधीनस्थ सेवा चयन आयोग द्वारा आयोजित टाइपिंग परीक्षा का उद्देश्य अभ्यर्थियों की गति के साथ-साथ शुद्धता का मूल्यांकन करना है। पाँच मिनट की समयावधि में दिए गए अनुच्छेद को हूबहू टाइप करना होता है। ध्यान रखें कि शब्द, विराम-चिह्न और बड़े-छोटे अक्षरों में त्रुटि न हो। स्थिर गति और लय के साथ अभ्यास करने से सकल गति तथा शुद्ध टाइपिंग गति में लगातार सुधार आता है। अभ्यर्थियों को सही कीबोर्ड लेआउट का प्रयोग करते हुए स्क्रीन पर ध्यान केंद्रित रखना चाहिए।"
+        english:"The Uttar Pradesh Subordinate Services Selection Commission conducts the typing test to check a candidate's ability to type accurately at a practical pace. During the examination you will copy the given passage within a strict five minute window...",
+        hindi:"उत्तर प्रदेश अधीनस्थ सेवा चयन आयोग द्वारा आयोजित टाइपिंग परीक्षा का उद्देश्य अभ्यर्थियों की गति के साथ-साथ शुद्धता का मूल्यांकन करना है..."
       }];
       els.passageSet.innerHTML = '<option value="default">Default</option>';
       els.passageSet.value = 'default';
