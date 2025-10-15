@@ -142,10 +142,10 @@
       <h3>Test Results</h3>
       <div id="bothResults" class="hidden">
         <div class="grid">
-          <div class="stat"><small>EN Gross</small><div id="grossEN" class="value">0.00<span class="u"> WPM</span> · 0<span class="u"> KPM</span></div></div>
-          <div class="stat"><small>EN Net</small><div id="netEN" class="value">0.00<span class="u"> WPM</span> · 0<span class="u"> KPM</span></div></div>
-          <div class="stat"><small>HI Gross</small><div id="grossHI" class="value">0.00<span class="u"> WPM</span> · 0<span class="u"> KPM</span></div></div>
-          <div class="stat"><small>HI Net</small><div id="netHI" class="value">0.00<span class="u"> WPM</span> · 0<span class="u"> KPM</span></div></div>
+          <div class="stat"><small>EN Gross</small><div id="grossEN" class="value">0.00<span class="u"> WPM</span></div></div>
+          <div class="stat"><small>EN Net</small><div id="netEN" class="value">0.00<span class="u"> WPM</span></div></div>
+          <div class="stat"><small>HI Gross</small><div id="grossHI" class="value">0.00<span class="u"> WPM</span></div></div>
+          <div class="stat"><small>HI Net</small><div id="netHI" class="value">0.00<span class="u"> WPM</span></div></div>
         </div>
         <div class="grid" style="margin-top:10px">
           <div class="stat"><small>EN Errors</small><div class="value"><span id="fullEN">0</span> full, <span id="partialEN">0</span> partial</div></div>
@@ -153,7 +153,7 @@
           <div class="stat"><small>HI Errors</small><div class="value"><span id="fullHI">0</span> full, <span id="partialHI">0</span> partial</div></div>
           <div class="stat"><small>HI Penalty</small><div id="penaltyHI" class="value" style="color:var(--warning)">0<span class="u"> Words</span></div></div>
         </div>
-        <!-- NEW: Totals -->
+        <!-- Totals -->
         <div class="grid" style="margin-top:10px">
           <div class="stat"><small>Total Keystrokes</small><div id="totalKeys" class="value">0</div></div>
           <div class="stat"><small>Total Words</small><div id="totalWords" class="value">0</div></div>
@@ -216,7 +216,6 @@ document.addEventListener('DOMContentLoaded', function(){
     instrBody: document.getElementById('instrBody'),
     instrOk: document.getElementById('instrOk'),
     instrCancel: document.getElementById('instrCancel'),
-    // NEW totals
     totalKeys: document.getElementById('totalKeys'),
     totalWords: document.getElementById('totalWords'),
   };
@@ -314,23 +313,19 @@ document.addEventListener('DOMContentLoaded', function(){
     snapshotTextarea();
   }
 
-  /* ===== BACKSPACE LOCK: current + previous word only =====
-     Lock boundary = index OF the second-last space (inclusive).
-     Anything at/before boundary is locked.                                  */
+  /* ===== BACKSPACE LOCK: current + previous word only ===== */
   function computeLockIndex(val){
     const spaces = [];
     for (let i = 0; i < val.length; i++){
       if (val[i] === ' ') spaces.push(i);
     }
     if (spaces.length <= 1) return -1;            // < 2 spaces → no lock yet
-    return spaces[spaces.length - 2];             // boundary AT second-last space
+    return spaces[spaces.length - 2];             // lock at second-last space (inclusive)
   }
-
-  // Never move lock backward (prevents “unlocking” older text)
   function nextLockIndex(currentVal, currentLock){
     const cand = computeLockIndex(currentVal);
     if (currentLock == null || currentLock < 0) return cand;
-    return Math.max(currentLock, cand);
+    return Math.max(currentLock, cand);           // never move backward
   }
 
   // Lock state & snapshots
@@ -348,10 +343,8 @@ document.addEventListener('DOMContentLoaded', function(){
       lastSelEnd   = els.inputArea.selectionEnd;
     }catch(_){}
   }
-
   function violatesPrefixLock(prev, next, boundary){
     if (boundary < 0) return false;
-    // boundary is inclusive (space itself locked)
     return next.slice(0, boundary + 1) !== prev.slice(0, boundary + 1);
   }
 
@@ -461,17 +454,16 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Metrics
     const keystrokes = typedRaw.length;
-    const grossKPM = keystrokes / minutes;
-    const grossWPM = typedWords.length / minutes;       // word-count based WPM
+    const grossWords = keystrokes / 5;              // word units from keystrokes
+    const grossWPM = grossWords / minutes;          // WPM = (keystrokes/5)/minutes
 
     // Penalty: only typed errors (after 5 grace); 1 error = 1 word penalty
     const grace = 5;
     const extraErrors = Math.max(0, partial - grace);
     const penaltyWords = extraErrors;
 
-    const netWordsTyped = Math.max(0, typedWords.length - penaltyWords);
-    const netWPM = netWordsTyped / minutes;
-    const netKPM = netWPM * 5;
+    const netWords = Math.max(0, grossWords - penaltyWords);
+    const netWPM = netWords / minutes;
 
     // Pass/fail on WPM requirement
     const minSpeed = stage === 'HI' ? 25 : 30;
@@ -479,16 +471,16 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Update DOM
     if (stage==='EN'){
-      els.grossEN.innerHTML = `${grossWPM.toFixed(2)}<span class="u"> WPM</span> · ${Math.round(grossKPM)}<span class="u"> KPM</span>`;
-      els.netEN.innerHTML   = `${netWPM.toFixed(2)}<span class="u"> WPM</span> · ${Math.round(netKPM)}<span class="u"> KPM</span>`;
+      els.grossEN.innerHTML = `${grossWPM.toFixed(2)}<span class="u"> WPM</span>`;
+      els.netEN.innerHTML   = `${netWPM.toFixed(2)}<span class="u"> WPM</span>`;
       els.fullEN.textContent = full;
       els.partialEN.textContent = partial;
       els.penaltyEN.innerHTML = `${penaltyWords}<span class="u"> Words</span>`;
       els.badgeEN.className = passed ? 'pill-pass' : 'pill-fail';
       els.badgeEN.textContent = 'EN: ' + (passed ? 'PASS' : 'FAIL');
     } else {
-      els.grossHI.innerHTML = `${grossWPM.toFixed(2)}<span class="u"> WPM</span> · ${Math.round(grossKPM)}<span class="u"> KPM</span>`;
-      els.netHI.innerHTML   = `${netWPM.toFixed(2)}<span class="u"> WPM</span> · ${Math.round(netKPM)}<span class="u"> KPM</span>`;
+      els.grossHI.innerHTML = `${grossWPM.toFixed(2)}<span class="u"> WPM</span>`;
+      els.netHI.innerHTML   = `${netWPM.toFixed(2)}<span class="u"> WPM</span>`;
       els.fullHI.textContent = full;
       els.partialHI.textContent = partial;
       els.penaltyHI.innerHTML = `${penaltyWords}<span class="u"> Words</span>`;
@@ -496,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function(){
       els.badgeHI.textContent = 'HI: ' + (passed ? 'PASS' : 'FAIL');
     }
 
-    // Show totals for the current (just-finished) stage
+    // Totals for this stage
     els.totalKeys.textContent = keystrokes;
     els.totalWords.textContent = typedWords.length;
 
@@ -504,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function(){
     els.bothResults.classList.remove('hidden'); els.preResultsNote.classList.add('hidden');
 
     return {
-      grossWPM, grossKPM, netWPM, netKPM,
+      grossWPM, netWPM,
       fullErrors: full, partialErrors: partial, penaltyWords, passed,
       totals: { keystrokes, words: typedWords.length }
     };
@@ -540,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 
-  /* ===== Keep caret out of locked region (CURRENT lockIdx) ===== */
+  /* ===== Keep caret out of locked region ===== */
   els.inputArea.addEventListener('select', snapCaretIfNeeded);
   document.addEventListener('selectionchange', function(){
     if (!started) return;
@@ -557,16 +549,13 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  /* ===== Primary: beforeinput (block edits that cross prevLockIdx) ===== */
+  /* ===== Primary: beforeinput ===== */
   els.inputArea.addEventListener('beforeinput', function(e){
     if (!started) return;
 
-    // Snapshot state BEFORE the incoming change (prevLockIdx set here)
-    snapshotTextarea();
-
+    snapshotTextarea();  // prevLockIdx is set here
     const t = e.inputType;
 
-    // Block paste/drop
     if (t === 'insertFromPaste' || t === 'insertFromDrop'){
       showToast('⚠️ CTRL/CMD or Paste not allowed');
       e.preventDefault(); 
@@ -578,15 +567,12 @@ document.addEventListener('DOMContentLoaded', function(){
       'deleteByComposition','historyUndo','deleteByDrag'
     ]);
 
-    // Compute affected range [aStart, aEnd)
     let s = e.target.selectionStart;
     let ed = e.target.selectionEnd;
     let aStart = s, aEnd = ed;
 
     if (t === 'insertText' || t === 'insertCompositionText'){
-      // Replace selection? If selection touches lock, block.
       if (s !== ed && Math.min(s, ed) <= prevLockIdx){ e.preventDefault(); return; }
-      // Insertion at caret within lock is not allowed
       if (s === ed && s <= prevLockIdx){ e.preventDefault(); return; }
     } else if (deletionTypes.has(t)){
       if (s === ed){
@@ -597,28 +583,24 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 
-  /* ===== Keydown fallback (caret movement + delete char semantics) ===== */
+  /* ===== Keydown fallback ===== */
   els.inputArea.addEventListener('keydown', function(e){
     if (!started) return;
 
-    // Snapshot on likely-changing keys
     const changeKeys = ['Backspace','Delete','Enter',' ','ArrowLeft','Home'];
     if (e.key && changeKeys.includes(e.key)) snapshotTextarea();
 
-    // Ctrl/Cmd guards
     if (e.ctrlKey || e.metaKey){
       if (e.key !== 'Control' && e.key !== 'Meta'){ showToast('⚠️ CTRL/CMD or Paste not allowed'); }
       e.preventDefault(); 
       return;
     }
-    // Shift+Insert paste
     if (e.shiftKey && e.key === 'Insert'){
       showToast('⚠️ CTRL/CMD or Paste not allowed');
       e.preventDefault(); 
       return;
     }
 
-    // No extra words beyond reference
     if (e.key === ' '){
       const val = els.inputArea.value;
       const refCount = passage.split(/\s+/).length;
@@ -629,7 +611,6 @@ document.addEventListener('DOMContentLoaded', function(){
     const boundary = (typeof prevLockIdx === 'number') ? prevLockIdx : lockIdx;
 
     if (boundary >= 0){
-      // Prevent caret entering locked region
       if (e.key === 'ArrowLeft' || e.key === 'Home'){
         const s = els.inputArea.selectionStart;
         const en = els.inputArea.selectionEnd;
@@ -640,8 +621,6 @@ document.addEventListener('DOMContentLoaded', function(){
           return;
         }
       }
-
-      // Prevent Backspace/Delete that would affect locked chars
       if (e.key === 'Backspace' || e.key === 'Delete'){
         const s = els.inputArea.selectionStart;
         const en = els.inputArea.selectionEnd;
@@ -662,7 +641,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const newVal = els.inputArea.value;
 
-    // Revert if locked prefix (up to & including boundary) changed
     if (violatesPrefixLock(lastVal, newVal, prevLockIdx)){
       els.inputArea.value = lastVal;
       const safe = Math.max(prevLockIdx + 1, 0);
@@ -671,13 +649,8 @@ document.addEventListener('DOMContentLoaded', function(){
       return;
     }
 
-    // Accept change → update visuals
     highlightProgress();
-
-    // Advance lock boundary (never backwards)
     lockIdx = nextLockIndex(newVal, lockIdx);
-
-    // Snapshot AFTER acceptance
     snapshotTextarea();
   });
 
