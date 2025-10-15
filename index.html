@@ -233,14 +233,21 @@ document.addEventListener('DOMContentLoaded', function(){
   };
 
   /* ===== Instruction HTML ===== */
-  const INSTRUCTIONS_HTML = `
-    <ol>
-      <li>English stage 5 minutes, then Hindi stage 5 minutes.</li>
-      <li>One “Word” = alphanumeric keys followed by a space.</li>
-      <li>Backspace allowed only within the current word and the immediate previous word.</li>
-      <li>Net WPM = (Total Words − Penalty Words) / minutes.</li>
-      <li>Penalty counts only typed mistakes (mismatches & over-typed), with 5-word grace.</li>
-    </ol>`;
+const INSTRUCTIONS_HTML = `
+  <ol>
+    <li>The candidates will be provided with the master text passage of about 1500 key depressions in English.</li>
+    <li>The typing can be either word based typing or key strokes based typing.</li>
+    <li>For example, 35 w.p.m. is about 10500 key depressions per hour and 30 w.p.m. corresponds to about 9000 key depression per hour.</li>
+    <li>The duration of the English typing test is 05:00 minute.</li>
+    <li>The countdown timer in the top right corner of the screen will display the remaining time available for you to complete the examination. When the timer reaches zero, the examination will end by itself with typed passage, you are not required to end or submit your test.</li>
+    <li>Candidates are not required to repeat the passage, if he/she has completed the passage once and has time in his/her disposal, however they are allowed to revise and correct their mistakes and inaccuracies, if any, during the prescribed time</li>
+    <li>After every punctuation mark, only One space is to be inserted, e.g. after comma, full stop, mark of interrogation etc. However, candidates are advised to follow the Question paper scrupulously in this regard.</li>
+    <li>The combination of alphanumeric keys followed by one space is termed as one “Word”.</li>
+    <li>Once you have completed typing of the given passage and you do not find any errors or mistakes in it, you may submit it by pressing the submit button. After submission no editing or change in the typed passage is possible.</li>
+    <li>If your computer is locked/switched off or for any type of technical help, please inform a nearby invigilator immediately.</li>
+    <li>In any case of auto restart of the computer, you will be again provided with the full time to type the given passage.</li>
+    <li>After typing a given number of words in the master text passage the space bar will not allow further typing of additional words. For example, if there are 500 words in the master text passage, candidates can type only 500 words and after that space bar will not allow the candidates to type any additional word, however, the keyboard will allow the candidate to continue typing without using the space bar.</li>
+  </ol>`;
 
   /* ===== State ===== */
   let intervalId = null;
