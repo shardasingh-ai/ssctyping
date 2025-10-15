@@ -40,8 +40,8 @@
   .inputbox{min-height:160px; overflow:auto; border:1px solid #e5e7eb; border-radius:12px; padding:16px; background:#f8fafc}
 
   /* Typing visuals */
-  #textDisplay span.ok{ color:#6b7280; }
-  #textDisplay span.err{ color:var(--err-red); }
+  #textDisplay span.ok{ color:#6b7280; }          /* correct */
+  #textDisplay span.err{ color:var(--err-red); }  /* wrong */
   #textDisplay span.cur{ background:var(--cur-yellow); color:#111827; padding:2px 3px; border-radius:4px }
 
   .grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
@@ -75,6 +75,8 @@
   .modal{background:#fff; width:min(760px,calc(100% - 24px)); border-radius:16px; box-shadow:var(--ring); padding:18px;}
   .modal h2{margin:0 0 10px; font-size:18px; font-weight:800}
   .modal .body{max-height:52vh; overflow:auto; border:1px solid #e5e7eb; border-radius:10px; padding:12px; background:#f8fafc;}
+  .modal .body ol{margin:0; padding-left:20px;}
+  .modal .body li{margin:6px 0;}
   .modal .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:12px}
   .modal .actions .btn-primary{background:var(--accent); color:#fff; border:none}
   .modal .actions .btn-primary:hover{background:var(--accent-700)}
@@ -131,7 +133,7 @@
       <div class="inputbox" id="inputWrapper">
         <textarea id="inputArea" placeholder="Start typing here..." disabled
           autocorrect="off" autocomplete="off" autocapitalize="off" spellcheck="false"
-          style="width:100%; height:140px; border:none; outline:none; background:transparent; font-size:14px; line-height:1.6;"></textarea>
+          style="width:100%; height:160px; border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff; font-size:14px; line-height:1.6;"></textarea>
       </div>
       <small class="note">Backspace/Delete/Cut are limited to the <b>current word and the immediate previous word</b>.</small>
     </section>
@@ -232,22 +234,22 @@ document.addEventListener('DOMContentLoaded', function(){
     hiNet: document.getElementById('hiNet'),
   };
 
-  /* ===== Instruction HTML ===== */
-const INSTRUCTIONS_HTML = `
-  <ol>
-    <li>The candidates will be provided with the master text passage of about 1500 key depressions in English.</li>
-    <li>The typing can be either word based typing or key strokes based typing.</li>
-    <li>For example, 35 w.p.m. is about 10500 key depressions per hour and 30 w.p.m. corresponds to about 9000 key depression per hour.</li>
-    <li>The duration of the English typing test is 05:00 minute.</li>
-    <li>The countdown timer in the top right corner of the screen will display the remaining time available for you to complete the examination. When the timer reaches zero, the examination will end by itself with typed passage, you are not required to end or submit your test.</li>
-    <li>Candidates are not required to repeat the passage, if he/she has completed the passage once and has time in his/her disposal, however they are allowed to revise and correct their mistakes and inaccuracies, if any, during the prescribed time</li>
-    <li>After every punctuation mark, only One space is to be inserted, e.g. after comma, full stop, mark of interrogation etc. However, candidates are advised to follow the Question paper scrupulously in this regard.</li>
-    <li>The combination of alphanumeric keys followed by one space is termed as one “Word”.</li>
-    <li>Once you have completed typing of the given passage and you do not find any errors or mistakes in it, you may submit it by pressing the submit button. After submission no editing or change in the typed passage is possible.</li>
-    <li>If your computer is locked/switched off or for any type of technical help, please inform a nearby invigilator immediately.</li>
-    <li>In any case of auto restart of the computer, you will be again provided with the full time to type the given passage.</li>
-    <li>After typing a given number of words in the master text passage the space bar will not allow further typing of additional words. For example, if there are 500 words in the master text passage, candidates can type only 500 words and after that space bar will not allow the candidates to type any additional word, however, the keyboard will allow the candidate to continue typing without using the space bar.</li>
-  </ol>`;
+  /* ===== Instruction HTML (exact text provided) ===== */
+  const INSTRUCTIONS_HTML = `
+    <ol>
+      <li>The candidates will be provided with the master text passage of about 1500 key depressions in English.</li>
+      <li>The typing can be either word based typing or key strokes based typing.</li>
+      <li>For example, 35 w.p.m. is about 10500 key depressions per hour and 30 w.p.m. corresponds to about 9000 key depression per hour.</li>
+      <li>The duration of the English typing test is 05:00 minute.</li>
+      <li>The countdown timer in the top right corner of the screen will display the remaining time available for you to complete the examination. When the timer reaches zero, the examination will end by itself with typed passage, you are not required to end or submit your test.</li>
+      <li>Candidates are not required to repeat the passage, if he/she has completed the passage once and has time in his/her disposal, however they are allowed to revise and correct their mistakes and inaccuracies, if any, during the prescribed time</li>
+      <li>After every punctuation mark, only One space is to be inserted, e.g. after comma, full stop, mark of interrogation etc. However, candidates are advised to follow the Question paper scrupulously in this regard.</li>
+      <li>The combination of alphanumeric keys followed by one space is termed as one “Word”.</li>
+      <li>Once you have completed typing of the given passage and you do not find any errors or mistakes in it, you may submit it by pressing the submit button. After submission no editing or change in the typed passage is possible.</li>
+      <li>If your computer is locked/switched off or for any type of technical help, please inform a nearby invigilator immediately.</li>
+      <li>In any case of auto restart of the computer, you will be again provided with the full time to type the given passage.</li>
+      <li>After typing a given number of words in the master text passage the space bar will not allow further typing of additional words. For example, if there are 500 words in the master text passage, candidates can type only 500 words and after that space bar will not allow the candidates to type any additional word, however, the keyboard will allow the candidate to continue typing without using the space bar.</li>
+    </ol>`;
 
   /* ===== State ===== */
   let intervalId = null;
@@ -329,14 +331,15 @@ const INSTRUCTIONS_HTML = `
     els.badgeHI.textContent = 'HI: —';
     els.badgeOverall.className = 'value pill-fail';
     els.badgeOverall.textContent = 'OVERALL: —';
-    // zero the numbers
-    els.enKeys.textContent = els.enWords.textContent = els.enWrong.textContent = els.enPenalty.textContent = '0';
+    // zero numbers
+    ['enKeys','enWords','enWrong','enPenalty','hiKeys','hiWords','hiWrong','hiPenalty']
+      .forEach(id => els[id].textContent = '0');
     els.enNet.innerHTML = '0.00<span class="u"> WPM</span>';
-    els.hiKeys.textContent = els.hiWords.textContent = els.hiWrong.textContent = els.hiPenalty.textContent = '0';
     els.hiNet.innerHTML = '0.00<span class="u"> WPM</span>';
   }
 
-  /* ===== BACKSPACE LOCK: current + previous word only ===== */
+  /* ===== BACKSPACE LOCK: current + previous word only =====
+     Lock boundary = index OF the second-last space (inclusive). */
   function computeLockIndex(val){
     const spaces = [];
     for (let i = 0; i < val.length; i++){
@@ -368,6 +371,7 @@ const INSTRUCTIONS_HTML = `
   }
   function violatesPrefixLock(prev, next, boundary){
     if (boundary < 0) return false;
+    // lock includes the space at boundary
     return next.slice(0, boundary + 1) !== prev.slice(0, boundary + 1);
   }
 
@@ -434,7 +438,7 @@ const INSTRUCTIONS_HTML = `
         if(prep<=0){ clearInterval(prepInt); stage='HI'; els.timerEl.textContent='5:00'; els.startBtn.textContent='Start Hindi'; startStage(); }
       },1000);
     } else {
-      // Now show both panels & overall
+      // Show both panels & overall now
       showCombinedResults();
       els.bothResults.classList.remove('hidden');
       els.preResultsNote.classList.add('hidden');
@@ -443,7 +447,7 @@ const INSTRUCTIONS_HTML = `
     started=false;
   }
 
-  /* ===== Scoring + write into panel for current stage (but reveal only after HI) ===== */
+  /* ===== Scoring & Highlights ===== */
   function computeResults(){
     const elapsedSec = Math.max(1, Math.round((Date.now()-startedAt)/1000));
     const minutes = elapsedSec/60;
@@ -486,7 +490,7 @@ const INSTRUCTIONS_HTML = `
     const minSpeed = stage === 'HI' ? 25 : 30;
     const passed = netWPM >= minSpeed;
 
-    // write fields for this stage (no reveal here)
+    // write fields for this stage (no reveal here for EN)
     if (stage === 'EN'){
       els.enKeys.textContent = keystrokes;
       els.enWords.textContent = totalWords;
@@ -651,7 +655,7 @@ const INSTRUCTIONS_HTML = `
       els.inputArea.value = lastVal;
       const safe = Math.max(prevLockIdx + 1, 0);
       els.inputArea.setSelectionRange(safe, safe);
-      showToast('Backspace limited to current & previous word');
+      // optional toast muted for UX: showToast('Backspace limited to current & previous word');
       return;
     }
 
@@ -715,15 +719,15 @@ const INSTRUCTIONS_HTML = `
       console.error('[passages.json] load error:', e);
       passageSets = [{
         id:'default', label:'Default',
-        english:"The Uttar Pradesh Subordinate Services Selection Commission conducts the typing test to check a candidate's ability to type accurately at a practical pace. During the examination you will copy the given passage within a strict five minute window...",
-        hindi:"उत्तर प्रदेश अधीनस्थ सेवा चयन आयोग द्वारा आयोजित टाइपिंग परीक्षा का उद्देश्य अभ्यर्थियों की गति के साथ-साथ शुद्धता का मूल्यांकन करना है..."
+        english:"The Uttar Pradesh Subordinate Services Selection Commission conducts the typing test to check a candidate's ability to type accurately at a practical pace. During the examination you will copy the given passage within a strict five minute window. The objective is not only to reach a higher speed, but also to maintain precision while switching between words, punctuation and casing. Students are advised to focus on rhythm, keep their posture neutral and avoid looking at the keyboard. With consistent practice the gross speed and net speed both improve substantially.",
+        hindi:"उत्तर प्रदेश अधीनस्थ सेवा चयन आयोग द्वारा आयोजित टाइपिंग परीक्षा का उद्देश्य अभ्यर्थियों की गति के साथ-साथ शुद्धता का मूल्यांकन करना है। पाँच मिनट की समयावधि में दिए गए अनुच्छेद को हूबहू टाइप करना होता है। ध्यान रखें कि शब्द, विराम-चिह्न और बड़े-छोटे अक्षरों में त्रुटि न हो। स्थिर गति और लय के साथ अभ्यास करने से सकल गति तथा शुद्ध टाइपिंग गति में लगातार सुधार आता है। अभ्यर्थियों को सही कीबोर्ड लेआउट का प्रयोग करते हुए स्क्रीन पर ध्यान केंद्रित रखना चाहिए।"
       }];
       els.passageSet.innerHTML = '<option value="default">Default</option>';
       els.passageSet.value = 'default';
       applySet('default');
       els.startBtn.disabled = false;
       els.startBtn.textContent = 'Start English';
-      showToast('⚠️ Could not load passages.json — using built-in default.');
+      // Optional: showToast('⚠️ Could not load passages.json — using built-in default.');
     }
   }
 
@@ -734,3 +738,4 @@ const INSTRUCTIONS_HTML = `
 </script>
 </body>
 </html>
+
